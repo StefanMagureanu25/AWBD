@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - E-Commerce</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --accent-color: #6f42c1;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        }
+        
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin: 0 auto 1rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .role-badge {
+            font-size: 0.8rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+        
+        .admin-badge {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+        
+        .user-badge {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark gradient-bg sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3" th:href="@{/}">
+                <i class="fas fa-shopping-cart me-2"></i>E-Commerce
+            </a>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/}">
+                        <i class="fas fa-home me-1"></i>Home
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Profile Header -->
+    <section class="profile-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8 mx-auto text-center">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h1 class="display-5 fw-bold mb-2" th:text="${user.firstName + ' ' + user.lastName}">User Name</h1>
+                    <p class="lead mb-3" th:text="${user.email}">user@example.com</p>
+                    
+                    <!-- Role Badge -->
+                    <div class="mb-3">
+                        <span class="role-badge admin-badge" th:if="${user.admin}">
+                            <i class="fas fa-crown me-1"></i>Administrator
+                        </span>
+                        <span class="role-badge user-badge" th:if="${user.user}">
+                            <i class="fas fa-user me-1"></i>Regular User
+                        </span>
+                    </div>
+                    
+                    <p class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Member since <span th:text="${#temporals.format(user.createdAt, 'MMMM yyyy')}">January 2024</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Content -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row">
+                <!-- User Information -->
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-circle me-2"></i>Profile Information
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">First Name</label>
+                                    <p class="form-control-plaintext" th:text="${user.firstName}">John</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Last Name</label>
+                                    <p class="form-control-plaintext" th:text="${user.lastName}">Doe</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Email</label>
+                                    <p class="form-control-plaintext" th:text="${user.email}">john@example.com</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Username</label>
+                                    <p class="form-control-plaintext" th:text="${user.username}">johndoe</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Status</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge bg-success" th:if="${user.enabled}">
+                                            <i class="fas fa-check-circle me-1"></i>Active
+                                        </span>
+                                        <span class="badge bg-danger" th:unless="${user.enabled}">
+                                            <i class="fas fa-times-circle me-1"></i>Inactive
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Account Type</label>
+                                    <p class="form-control-plaintext">
+                                        <span class="badge bg-warning" th:if="${user.admin}">
+                                            <i class="fas fa-crown me-1"></i>Administrator
+                                        </span>
+                                        <span class="badge bg-info" th:if="${user.user}">
+                                            <i class="fas fa-user me-1"></i>Regular User
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Section (Only for Admins) -->
+                    <div class="card mb-4" th:if="${user.admin}">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-crown me-2"></i>Administrator Tools
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <a th:href="@{/admin/dashboard}" class="btn btn-warning w-100">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard
+                                    </a>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <a th:href="@{/products/admin/create}" class="btn btn-success w-100">
+                                        <i class="fas fa-plus me-2"></i>Add Product
+                                    </a>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <a th:href="@{/products/admin/list}" class="btn btn-primary w-100">
+                                        <i class="fas fa-list me-2"></i>Manage Products
+                                    </a>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <a th:href="@{/users/admin/list}" class="btn btn-info w-100">
+                                        <i class="fas fa-users me-2"></i>Manage Users
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Section (Only for Regular Users) -->
+                    <div class="card mb-4" th:if="${user.user and !user.admin}">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-shopping-bag me-2"></i>My Shopping
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <a th:href="@{/user/orders}" class="btn btn-info w-100">
+                                        <i class="fas fa-shopping-bag me-2"></i>My Orders
+                                    </a>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <a th:href="@{/user/reviews}" class="btn btn-warning w-100">
+                                        <i class="fas fa-star me-2"></i>My Reviews
+                                    </a>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <a th:href="@{/user/wishlist}" class="btn btn-success w-100">
+                                        <i class="fas fa-heart me-2"></i>Wishlist
+                                    </a>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <a th:href="@{/user/settings}" class="btn btn-secondary w-100">
+                                        <i class="fas fa-cog me-2"></i>Settings
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="col-lg-4">
+                    <!-- Quick Stats -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-bar me-2"></i>Quick Stats
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Total Orders</span>
+                                <span class="fw-bold" th:text="${user.orders != null ? user.orders.size() : 0}">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Reviews Given</span>
+                                <span class="fw-bold" th:text="${user.reviews != null ? user.reviews.size() : 0}">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Account Age</span>
+                                <span class="fw-bold" th:text="${#temporals.between(user.createdAt, #temporals.createNow(), 'DAYS')}">0 days</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tools me-2"></i>Actions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a th:href="@{/users/edit/{id}(id=${user.id})}" class="btn btn-outline-primary">
+                                    <i class="fas fa-edit me-2"></i>Edit Profile
+                                </a>
+                                <a th:href="@{/users/change-password}" class="btn btn-outline-warning">
+                                    <i class="fas fa-key me-2"></i>Change Password
+                                </a>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-danger w-100">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
