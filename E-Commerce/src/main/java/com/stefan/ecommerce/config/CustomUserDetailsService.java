@@ -31,8 +31,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         logger.debug("Attempting to load user by username: {}", username);
-        
-        // Try to find user by username first, then by email
+
         User user = userRepository.findByUsername(username)
                 .orElseGet(() -> {
                     logger.debug("User not found by username, trying email: {}", username);
@@ -43,14 +42,13 @@ public class CustomUserDetailsService implements UserDetailsService {
                             });
                 });
 
-        logger.debug("Found user: {} (enabled: {})", user.getUsername(), user.isEnabled());
+        logger.debug("Found user: {} (active: {})", user.getUsername(), user.isActive());
 
-        if (!user.isEnabled()) {
-            logger.error("User account is disabled: {}", username);
-            throw new UsernameNotFoundException("User account is disabled: " + username);
+        if (!user.isActive()) {
+            logger.error("User account is inactive: {}", username);
+            throw new UsernameNotFoundException("User account is inactive: " + username);
         }
 
-        // Convert user roles to Spring Security authorities
         var authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
                 .collect(Collectors.toList());
@@ -61,7 +59,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .username(user.getUsername())
                 .password(user.getPassword())
                 .authorities(authorities)
-                .disabled(!user.isEnabled())
+                .disabled(!user.isActive())
                 .accountExpired(false)
                 .credentialsExpired(false)
                 .accountLocked(false)

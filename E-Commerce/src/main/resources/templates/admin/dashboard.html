@@ -24,6 +24,9 @@
                 <li class="nav-item">
                     <a class="nav-link" th:href="@{/products}">Products</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/categories}">Categories</a>
+                </li>
             </ul>
 
             <ul class="navbar-nav">
@@ -138,6 +141,16 @@
                         <h5 class="card-title">View Products</h5>
                         <p class="card-text">Manage all products</p>
                         <a th:href="@{/products}" class="btn btn-primary">View Products</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">View Categories</h5>
+                        <p class="card-text">Manage all categories</p>
+                        <a th:href="@{/categories}" class="btn btn-primary">View Categories</a>
                     </div>
                 </div>
             </div>

@@ -48,7 +48,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(password));
         user.setFirstName(firstName);
         user.setLastName(lastName);
-        user.setEnabled(true);
+        user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
@@ -74,7 +74,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(password));
         user.setFirstName(firstName);
         user.setLastName(lastName);
-        user.setEnabled(true);
+        user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
@@ -136,7 +136,7 @@ public class UserService {
         Optional<User> userOpt = findByEmailOrUsername(login);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            return user.isEnabled() && passwordEncoder.matches(password, user.getPassword());
+            return user.isActive() && passwordEncoder.matches(password, user.getPassword());
         }
         return false;
     }
@@ -172,7 +172,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public List<User> findEnabledUsers() {
-        return userRepository.findByEnabledTrue();
+        return userRepository.findByActiveTrue();
     }
 
     /**
@@ -180,7 +180,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public List<User> findDisabledUsers() {
-        return userRepository.findByEnabledFalse();
+        return userRepository.findByActiveFalse();
     }
 
     /**
@@ -335,7 +335,7 @@ public class UserService {
     public void enableUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
-        user.setEnabled(true);
+        user.setActive(true);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
@@ -346,7 +346,7 @@ public class UserService {
     public void disableUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
-        user.setEnabled(false);
+        user.setActive(false);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
@@ -419,7 +419,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public long getEnabledUserCount() {
-        return userRepository.countByEnabledTrue();
+        return userRepository.countByActiveTrue();
     }
 
     /**

@@ -23,9 +23,6 @@ public class CategoryController {
         this.categoryService = categoryService;
     }
 
-    /**
-     * Show all categories
-     */
     @GetMapping("/categories")
     public String showAllCategories(Model model) {
         List<Category> categories = categoryService.findAllActiveCategories();
@@ -33,18 +30,12 @@ public class CategoryController {
         return "categories/browse";
     }
 
-    /**
-     * Show create category form
-     */
     @GetMapping("/admin/categories/create")
     public String showCreateCategoryForm(Model model) {
         model.addAttribute("category", new Category());
         return "admin/categories/create";
     }
 
-    /**
-     * Process category creation
-     */
     @PostMapping("/admin/categories/create")
     public String createCategory(@Valid @ModelAttribute("category") Category category,
                                  BindingResult bindingResult,
@@ -72,60 +63,6 @@ public class CategoryController {
         }
     }
 
-    /**
-     * Show edit category form
-     */
-    @GetMapping("/admin/categories/{id}/edit")
-    public String showEditCategoryForm(@PathVariable("id") Long id, Model model) {
-        Optional<Category> categoryOpt = categoryService.findById(id);
-
-        if (categoryOpt.isPresent()) {
-            model.addAttribute("category", categoryOpt.get());
-            return "admin/categories/edit";
-        } else {
-            return "error/404";
-        }
-    }
-
-    /**
-     * Process category update
-     */
-    @PostMapping("/admin/categories/{id}/edit")
-    public String updateCategory(@PathVariable("id") Long id,
-                                 @Valid @ModelAttribute("category") Category category,
-                                 BindingResult bindingResult,
-                                 Model model,
-                                 RedirectAttributes redirectAttributes) {
-
-        if (bindingResult.hasErrors()) {
-            return "admin/categories/edit";
-        }
-
-        try {
-            Category updatedCategory = categoryService.updateCategory(
-                    id,
-                    category.getName(),
-                    category.getDescription(),
-                    category.getImageUrl()
-            );
-
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Category '" + updatedCategory.getName() + "' updated successfully!");
-            return "redirect:/categories";
-
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            Optional<Category> categoryOpt = categoryService.findById(id);
-            if (categoryOpt.isPresent()) {
-                model.addAttribute("category", categoryOpt.get());
-            }
-            return "admin/categories/edit";
-        }
-    }
-
-    /**
-     * Delete category
-     */
     @PostMapping("/admin/categories/{id}/delete")
     public String deleteCategory(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -138,9 +75,6 @@ public class CategoryController {
         return "redirect:/categories";
     }
 
-    /**
-     * Activate category
-     */
     @PostMapping("/admin/categories/{id}/activate")
     public String activateCategory(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -153,9 +87,6 @@ public class CategoryController {
         return "redirect:/categories";
     }
 
-    /**
-     * Deactivate category
-     */
     @PostMapping("/admin/categories/{id}/deactivate")
     public String deactivateCategory(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {

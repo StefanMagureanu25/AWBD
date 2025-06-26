@@ -30,9 +30,6 @@ public class HomeController {
         this.userService = userService;
     }
 
-    /**
-     * Main landing page
-     */
     @GetMapping("/")
     public String home(Model model) {
         logger.info("HomeController: home() called");
@@ -45,7 +42,6 @@ public class HomeController {
         }
         model.addAttribute("featuredProducts", featuredProducts != null ? featuredProducts : java.util.Collections.emptyList());
 
-        // Site statistics for homepage banners
         long totalProducts = 0;
         long totalCategories = 0;
         long totalUsers = 0;
@@ -66,21 +62,16 @@ public class HomeController {
         return "index";
     }
 
-    /**
-     * Global search across products and categories
-     */
     @GetMapping("/search")
     public String globalSearch(@RequestParam("q") String searchTerm, Model model) {
-        // Search products
         List<Product> products = productService.searchProducts(searchTerm);
         if (products.size() > 10) {
-            products = products.subList(0, 10); // Limit to 10 for overview
+            products = products.subList(0, 10);
         }
 
-        // Search categories
         List<Category> categories = categoryService.searchCategories(searchTerm);
         if (categories.size() > 5) {
-            categories = categories.subList(0, 5); // Limit to 5 for overview
+            categories = categories.subList(0, 5);
         }
 
         model.addAttribute("searchTerm", searchTerm);
@@ -92,9 +83,6 @@ public class HomeController {
         return "search/global-results";
     }
 
-    /**
-     * Admin dashboard
-     */
     @GetMapping("/admin/dashboard")
     public String adminDashboard(Model model) {
         // Site statistics
@@ -114,14 +102,12 @@ public class HomeController {
         model.addAttribute("enabledUsers", enabledUsers);
         model.addAttribute("disabledUsers", totalUsers - enabledUsers);
 
-        // Recent activity
         List<Product> recentProducts = productService.getFeaturedProducts(5);
         model.addAttribute("recentProducts", recentProducts);
 
         List<Category> recentCategories = categoryService.getRecentCategories(5);
         model.addAttribute("recentCategories", recentCategories);
 
-        // Alerts and warnings
         List<Product> lowStockProducts = productService.getLowStockProducts(10);
         List<Product> outOfStockProducts = productService.getOutOfStockProducts();
         List<Category> emptyCategories = categoryService.findEmptyCategories();
@@ -136,12 +122,8 @@ public class HomeController {
         return "admin/dashboard";
     }
 
-    /**
-     * About us page
-     */
     @GetMapping("/about")
     public String about(Model model) {
-        // Site statistics for about page
         model.addAttribute("totalProducts", productService.getActiveProductCount());
         model.addAttribute("totalCategories", categoryService.getActiveCategoryCount());
         model.addAttribute("totalCustomers", userService.getUsersWithOrders().size());
@@ -149,9 +131,6 @@ public class HomeController {
         return "info/about";
     }
 
-    /**
-     * Access denied page
-     */
     @GetMapping("/access-denied")
     public String accessDenied() {
         return "error/access-denied";

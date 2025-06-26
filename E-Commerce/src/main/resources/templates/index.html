@@ -24,6 +24,9 @@
                 <li class="nav-item">
                     <a class="nav-link" th:href="@{/products}">Products</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/categories}">Categories</a>
+                </li>
             </ul>
 
             <ul class="navbar-nav">
@@ -32,10 +35,20 @@
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/users/login}">Login</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/users/register}">Register</a>
+                    </li>
                 </div>
 
                 <!-- Authenticated Users -->
                 <div th:if="${#authorization != null and #authorization.expr('isAuthenticated()')}">
+                    <!-- Wishlist -->
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/wishlist}">
+                            <i class="fas fa-heart"></i> Wishlist
+                        </a>
+                    </li>
+                    
                     <!-- Admin Users -->
                     <li class="nav-item dropdown" th:if="${#authorization.expr('hasRole(''ADMIN'')')}">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -45,6 +58,7 @@
                             <li><a class="dropdown-item" th:href="@{/admin/dashboard}">Dashboard</a></li>
                             <li><a class="dropdown-item" th:href="@{/products/admin/create}">Add Product</a></li>
                             <li><a class="dropdown-item" th:href="@{/admin/categories/create}">Add Category</a></li>
+                            <li><a class="dropdown-item" th:href="@{/categories}">View Categories</a></li>
                         </ul>
                     </li>
 

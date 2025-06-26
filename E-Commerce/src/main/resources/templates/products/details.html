@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+  <title th:text="${product.name + ' - E-Commerce'}">Product Details - E-Commerce</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .product-image {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .placeholder-image {
+      width: 100%;
+      height: 300px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: #6c757d;
+      font-size: 1.2rem;
+    }
+    
+    .category-badge {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      margin: 0.25rem;
+      display: inline-block;
+    }
+    
+    .stock-status {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    
+    .stock-in {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .stock-out {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .product-info-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 2rem;
+    }
+    
+    .price-display {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #007bff;
+    }
+    
+    .wishlist-btn {
+      transition: all 0.3s ease;
+    }
+    
+    .wishlist-btn:hover {
+      transform: scale(1.1);
+    }
+    
+    .wishlist-btn.active {
+      background-color: #dc3545;
+      border-color: #dc3545;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" th:href="@{/}">E-Commerce</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/}">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/products}">Products</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/categories}">Categories</a>
+        </li>
+      </ul>
+
+      <ul class="navbar-nav">
+        <!-- Guest Users -->
+        <div th:if="${#authorization == null or !#authorization.expr('isAuthenticated()')}">
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/users/login}">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/users/register}">Register</a>
+          </li>
+        </div>
+
+        <!-- Authenticated Users -->
+        <div th:if="${#authorization != null and #authorization.expr('isAuthenticated()')}">
+          <!-- Wishlist -->
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/wishlist}">
+              <i class="fas fa-heart"></i> Wishlist
+            </a>
+          </li>
+          
+          <!-- Admin Users -->
+          <li class="nav-item dropdown" th:if="${#authorization.expr('hasRole(''ADMIN'')')}">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+              Admin
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" th:href="@{/admin/dashboard}">Dashboard</a></li>
+              <li><a class="dropdown-item" th:href="@{/products/admin/create}">Add Product</a></li>
+              <li><a class="dropdown-item" th:href="@{/admin/categories/create}">Add Category</a></li>
+            </ul>
+          </li>
+
+          <!-- Logout -->
+          <li class="nav-item">
+            <form th:action="@{/logout}" method="post" class="d-inline">
+              <button type="submit" class="nav-link btn btn-link">Logout</button>
+            </form>
+          </li>
+        </div>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Breadcrumb -->
+<section class="py-3 bg-light">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a th:href="@{/}">Home</a></li>
+        <li class="breadcrumb-item"><a th:href="@{/products}">Products</a></li>
+        <li class="breadcrumb-item active" th:text="${product.name}">Product Name</li>
+      </ol>
+    </nav>
+  </div>
+</section>
+
+<!-- Product Details Section -->
+<section class="py-5">
+  <div class="container">
+    <div class="row">
+      <!-- Product Image -->
+      <div class="col-lg-6 mb-4">
+        <div th:if="${product.imageUrl != null and !#strings.isEmpty(product.imageUrl)}">
+          <img th:src="${product.imageUrl}" th:alt="${product.name}" class="product-image">
+        </div>
+        <div th:unless="${product.imageUrl != null and !#strings.isEmpty(product.imageUrl)}" class="placeholder-image">
+          <div class="text-center">
+            <i class="fas fa-image fa-3x mb-3"></i>
+            <p>No image available</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Information -->
+      <div class="col-lg-6">
+        <div class="product-info-card">
+          <!-- Product Header -->
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h1 class="h2 mb-0" th:text="${product.name}">Product Name</h1>
+            <!-- Wishlist Button (only for authenticated users) -->
+            <div th:if="${#authorization != null and #authorization.expr('isAuthenticated()')}">
+              <button class="btn btn-outline-danger wishlist-btn" 
+                      th:data-product-id="${product.id}"
+                      th:attr="onclick='toggleWishlist(this, ' + ${product.id} + ')'">
+                <i class="fas fa-heart"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Price -->
+          <div class="mb-4">
+            <div class="price-display" th:text="'$' + ${product.price}">$0.00</div>
+          </div>
+
+          <!-- Stock Status -->
+          <div class="mb-4">
+            <span class="stock-status" th:classappend="${product.stockQuantity > 0} ? 'stock-in' : 'stock-out'">
+              <i class="fas" th:classappend="${product.stockQuantity > 0} ? 'fa-check-circle' : 'fa-times-circle'"></i>
+              <span th:text="${product.stockQuantity > 0} ? 'In Stock (' + ${product.stockQuantity} + ' available)' : 'Out of Stock'">
+                Stock Status
+              </span>
+            </span>
+          </div>
+
+          <!-- Categories -->
+          <div class="mb-4" th:if="${not #lists.isEmpty(product.categories)}">
+            <h6 class="text-muted mb-2">Categories:</h6>
+            <div>
+              <span class="category-badge" th:each="category : ${product.categories}" th:text="${category.name}">
+                Category
+              </span>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-4" th:if="${product.description != null and !#strings.isEmpty(product.description)}">
+            <h6 class="text-muted mb-2">Description:</h6>
+            <p class="mb-0" th:text="${product.description}">Product description</p>
+          </div>
+
+          <!-- Product Specifications -->
+          <div class="mb-4">
+            <h6 class="text-muted mb-3">Product Specifications:</h6>
+            <div class="row">
+              <div class="col-md-6 mb-2" th:if="${product.dimensions != null and !#strings.isEmpty(product.dimensions)}">
+                <strong>Dimensions:</strong>
+                <span th:text="${product.dimensions}">Dimensions</span>
+              </div>
+              <div class="col-md-6 mb-2" th:if="${product.weightKg != null}">
+                <strong>Weight:</strong>
+                <span th:text="${product.weightKg + ' kg'}">Weight</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Status -->
+          <div class="mb-4">
+            <span class="badge" th:classappend="${product.active} ? 'bg-success' : 'bg-secondary'">
+              <span th:text="${product.active} ? 'Active' : 'Inactive'">Status</span>
+            </span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="d-grid gap-2">
+            <a th:href="@{/products}" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-2"></i>Back to Products
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="row mt-5">
+      <div class="col-12">
+        <div class="product-info-card">
+          <h4 class="mb-4">Product Information</h4>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <strong>Product ID:</strong>
+              <span th:text="${product.id}">ID</span>
+            </div>
+            <div class="col-md-6 mb-3" th:if="${product.createdAt != null}">
+              <strong>Added:</strong>
+              <span th:text="${#temporals.format(product.createdAt, 'MMM dd, yyyy')}">Date</span>
+            </div>
+            <div class="col-md-6 mb-3" th:if="${product.updatedAt != null}">
+              <strong>Last Updated:</strong>
+              <span th:text="${#temporals.format(product.updatedAt, 'MMM dd, yyyy')}">Date</span>
+            </div>
+            <div class="col-md-6 mb-3">
+              <strong>Status:</strong>
+              <span th:text="${product.active} ? 'Active' : 'Inactive'">Status</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function toggleWishlist(button, productId) {
+    const icon = button.querySelector('i');
+    const isInWishlist = button.getAttribute('data-in-wishlist') === 'true';
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content') || 
+                     document.querySelector('input[name="_csrf"]')?.value;
+    
+    if (isInWishlist) {
+        // Remove from wishlist
+        fetch(`/wishlist/remove/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        }).then(response => {
+            if (response.ok) {
+                button.classList.remove('active');
+                button.setAttribute('data-in-wishlist', 'false');
+                showMessage('Product removed from wishlist', 'success');
+            }
+        });
+    } else {
+        // Add to wishlist
+        fetch(`/wishlist/add/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        }).then(response => response.text())
+        .then(message => {
+            if (message.includes('successfully')) {
+                button.classList.add('active');
+                button.setAttribute('data-in-wishlist', 'true');
+                showMessage(message, 'success');
+            } else {
+                showMessage(message, 'info');
+            }
+        });
+    }
+}
+
+function showMessage(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+</script>
+</body>
+</html> 

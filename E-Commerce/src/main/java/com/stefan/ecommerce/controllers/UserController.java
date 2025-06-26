@@ -3,8 +3,6 @@ package com.stefan.ecommerce.controllers;
 import com.stefan.ecommerce.entities.User;
 import com.stefan.ecommerce.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -26,20 +24,12 @@ public class UserController {
         this.userService = userService;
     }
 
-    // ==================== USER REGISTRATION ====================
-
-    /**
-     * Show registration form
-     */
     @GetMapping("/register")
     public String showRegistrationForm(Model model) {
         model.addAttribute("user", new User());
         return "users/register";
     }
 
-    /**
-     * Process user registration
-     */
     @PostMapping("/register")
     public String registerUser(@Valid @ModelAttribute("user") User user,
                                BindingResult bindingResult,
@@ -47,25 +37,22 @@ public class UserController {
                                Model model,
                                RedirectAttributes redirectAttributes) {
 
-        // Check for validation errors
         if (bindingResult.hasErrors()) {
             return "users/register";
         }
 
-        // Validate password confirmation
         if (!user.getPassword().equals(confirmPassword)) {
-            model.addAttribute("passwordError", "Passwords do not match");
+            model.addAttribute("errorMessage", "Passwords do not match");
             return "users/register";
         }
 
-        // Validate password strength
-        if (!userService.isValidPassword(user.getPassword())) {
-            model.addAttribute("passwordError", "Password must be at least 8 characters long");
+        if (user.getPassword().length() < 8) {
+            model.addAttribute("errorMessage", "Password must be at least 8 characters long");
             return "users/register";
         }
 
         try {
-            userService.registerUser(
+            User createdUser = userService.registerUser(
                     user.getUsername(),
                     user.getEmail(),
                     user.getPassword(),
@@ -74,7 +61,7 @@ public class UserController {
             );
 
             redirectAttributes.addFlashAttribute("successMessage",
-                    "Registration successful! You can now log in.");
+                    "User '" + createdUser.getUsername() + "' registered successfully! Please log in.");
             return "redirect:/users/login";
 
         } catch (IllegalArgumentException e) {
@@ -83,262 +70,120 @@ public class UserController {
         }
     }
 
-    // ==================== USER LOGIN ====================
-
-    /**
-     * Show login form
-     */
     @GetMapping("/login")
-    public String showLoginForm(Model model) {
-        return "users/login";
-    }
-
-    /**
-     * Custom login processing (if not using Spring Security default)
-     */
-    @PostMapping("/login")
-    public String processLogin(@RequestParam("login") String login,
-                               @RequestParam("password") String password,
-                               Model model,
-                               RedirectAttributes redirectAttributes) {
-
-        if (userService.validateCredentials(login, password)) {
-            Optional<User> userOpt = userService.findByEmailOrUsername(login);
-            if (userOpt.isPresent()) {
-                // Set user in session (you'd normally use Spring Security for this)
-                redirectAttributes.addFlashAttribute("successMessage",
-                        "Welcome back, " + userOpt.get().getFirstName() + "!");
-                return "redirect:/";
-            }
+    public String showLoginForm(@RequestParam(value = "error", required = false) String error,
+                                @RequestParam(value = "logout", required = false) String logout,
+                                Model model) {
+        if (error != null) {
+            model.addAttribute("errorMessage", "Invalid username or password");
         }
-
-        model.addAttribute("errorMessage", "Invalid username/email or password");
+        if (logout != null) {
+            model.addAttribute("successMessage", "You have been logged out successfully");
+        }
         return "users/login";
     }
 
-    // ==================== USER PROFILE ====================
+    @GetMapping("/profile")
+    public String showUserProfile(Model model) {
+        return "users/profile";
+    }
 
-    /**
-     * Show user profile
-     */
-    @GetMapping("/profile/{id}")
-    public String showUserProfile(@PathVariable("id") Long id, Model model) {
-        Optional<User> userOpt = userService.findByIdWithProfile(id);
-        if (userOpt.isPresent()) {
-            model.addAttribute("user", userOpt.get());
+    @PostMapping("/profile/update")
+    public String updateProfile(@Valid @ModelAttribute("user") User user,
+                                BindingResult bindingResult,
+                                Model model,
+                                RedirectAttributes redirectAttributes) {
+
+        if (bindingResult.hasErrors()) {
             return "users/profile";
-        } else {
-            model.addAttribute("errorMessage", "User not found");
-            return "error/404";
         }
-    }
 
-    /**
-     * Show edit profile form
-     */
-    @GetMapping("/profile/{id}/edit")
-    public String showEditProfileForm(@PathVariable("id") Long id, Model model) {
-        Optional<User> userOpt = userService.findById(id);
-        if (userOpt.isPresent()) {
-            model.addAttribute("user", userOpt.get());
-            return "users/edit-profile";
-        } else {
-            model.addAttribute("errorMessage", "User not found");
-            return "error/404";
-        }
-    }
-
-    /**
-     * Update user profile
-     */
-    @PostMapping("/profile/{id}/edit")
-    public String updateUserProfile(@PathVariable("id") Long id,
-                                    @RequestParam("firstName") String firstName,
-                                    @RequestParam("lastName") String lastName,
-                                    @RequestParam("email") String email,
-                                    Model model,
-                                    RedirectAttributes redirectAttributes) {
         try {
-            userService.updateUserInfo(id, firstName, lastName, email);
+            User updatedUser = userService.updateUser(user);
             redirectAttributes.addFlashAttribute("successMessage", "Profile updated successfully!");
-            return "redirect:/users/profile/" + id;
+            return "redirect:/users/profile";
 
         } catch (IllegalArgumentException e) {
             model.addAttribute("errorMessage", e.getMessage());
-            Optional<User> userOpt = userService.findById(id);
-            if (userOpt.isPresent()) {
-                model.addAttribute("user", userOpt.get());
-            }
-            return "users/edit-profile";
+            return "users/profile";
         }
     }
 
-    // ==================== PASSWORD MANAGEMENT ====================
-
-    /**
-     * Show change password form
-     */
-    @GetMapping("/profile/{id}/change-password")
-    public String showChangePasswordForm(@PathVariable("id") Long id, Model model) {
-        Optional<User> userOpt = userService.findById(id);
-        if (userOpt.isPresent()) {
-            model.addAttribute("userId", id);
-            return "users/change-password";
-        } else {
-            model.addAttribute("errorMessage", "User not found");
-            return "error/404";
-        }
+    @GetMapping("/profile/change-password")
+    public String showChangePasswordForm(Model model) {
+        return "users/change-password";
     }
 
-    /**
-     * Process password change
-     */
-    @PostMapping("/profile/{id}/change-password")
-    public String changePassword(@PathVariable("id") Long id,
-                                 @RequestParam("currentPassword") String currentPassword,
+    @PostMapping("/profile/change-password")
+    public String changePassword(@RequestParam("currentPassword") String currentPassword,
                                  @RequestParam("newPassword") String newPassword,
                                  @RequestParam("confirmPassword") String confirmPassword,
                                  Model model,
                                  RedirectAttributes redirectAttributes) {
 
-        // Validate new password confirmation
         if (!newPassword.equals(confirmPassword)) {
             model.addAttribute("errorMessage", "New passwords do not match");
-            model.addAttribute("userId", id);
             return "users/change-password";
         }
 
-        // Validate password strength
-        if (!userService.isValidPassword(newPassword)) {
+        if (newPassword.length() < 8) {
             model.addAttribute("errorMessage", "Password must be at least 8 characters long");
-            model.addAttribute("userId", id);
             return "users/change-password";
         }
 
         try {
-            userService.changePassword(id, currentPassword, newPassword);
-            redirectAttributes.addFlashAttribute("successMessage", "Password changed successfully!");
-            return "redirect:/users/profile/" + id;
-
+            Optional<User> currentUser = userService.getCurrentUser();
+            if (currentUser.isPresent()) {
+                userService.changePassword(currentUser.get().getId(), currentPassword, newPassword);
+                redirectAttributes.addFlashAttribute("successMessage", "Password changed successfully!");
+                return "redirect:/users/profile";
+            } else {
+                model.addAttribute("errorMessage", "User not found");
+                return "users/change-password";
+            }
         } catch (IllegalArgumentException e) {
             model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("userId", id);
             return "users/change-password";
         }
     }
 
-    // ==================== ADMIN USER MANAGEMENT ====================
-
-    /**
-     * Show all users (admin only)
-     */
     @GetMapping("/admin/list")
-    public String listAllUsers(Model model) {
+    public String showAdminUserList(Model model) {
         List<User> users = userService.findAllUsers();
         model.addAttribute("users", users);
-        model.addAttribute("totalUsers", userService.getTotalUserCount());
-        model.addAttribute("enabledUsers", userService.getEnabledUserCount());
         return "admin/users/list";
     }
 
-    /**
-     * Show enabled users only
-     */
-    @GetMapping("/admin/enabled")
-    public String listEnabledUsers(Model model) {
-        List<User> users = userService.findEnabledUsers();
-        model.addAttribute("users", users);
-        model.addAttribute("pageTitle", "Enabled Users");
-        return "admin/users/list";
-    }
-
-    /**
-     * Show disabled users only
-     */
-    @GetMapping("/admin/disabled")
-    public String listDisabledUsers(Model model) {
-        List<User> users = userService.findDisabledUsers();
-        model.addAttribute("users", users);
-        model.addAttribute("pageTitle", "Disabled Users");
-        return "admin/users/list";
-    }
-
-    /**
-     * Show users with orders
-     */
-    @GetMapping("/admin/customers")
-    public String listCustomers(Model model) {
-        List<User> users = userService.getUsersWithOrders();
-        model.addAttribute("users", users);
-        model.addAttribute("pageTitle", "Customers (Users with Orders)");
-        return "admin/users/list";
-    }
-
-    // ==================== USER SEARCH ====================
-
-    /**
-     * Search users (admin)
-     */
     @GetMapping("/admin/search")
-    public String searchUsers(@RequestParam(value = "firstName", required = false) String firstName,
-                              @RequestParam(value = "lastName", required = false) String lastName,
-                              @RequestParam(value = "email", required = false) String email,
-                              Model model) {
-
-        List<User> users;
-        String searchType = "";
-
-        if (email != null && !email.trim().isEmpty()) {
-            users = userService.searchUsersByEmail(email);
-            searchType = "email: " + email;
-        } else if (firstName != null && !firstName.trim().isEmpty() &&
-                lastName != null && !lastName.trim().isEmpty()) {
-            users = userService.searchUsersByName(firstName, lastName);
-            searchType = "name: " + firstName + " " + lastName;
-        } else {
-            users = userService.findAllUsers();
-            searchType = "all users";
-        }
-
+    public String searchUsers(@RequestParam("q") String searchTerm, Model model) {
+        List<User> users = userService.searchUsersByName(searchTerm, searchTerm);
         model.addAttribute("users", users);
-        model.addAttribute("searchType", searchType);
-        model.addAttribute("searchResults", true);
-        return "admin/users/search";
+        model.addAttribute("searchTerm", searchTerm);
+        return "admin/users/search-results";
     }
 
-    // ==================== USER STATUS MANAGEMENT ====================
-
-    /**
-     * Enable user account
-     */
-    @PostMapping("/admin/{id}/enable")
-    public String enableUser(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+    @PostMapping("/admin/{id}/activate")
+    public String activateUser(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
             userService.enableUser(id);
-            redirectAttributes.addFlashAttribute("successMessage", "User enabled successfully!");
+            redirectAttributes.addFlashAttribute("successMessage", "User activated successfully!");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/users/admin/list";
     }
 
-    /**
-     * Disable user account
-     */
-    @PostMapping("/admin/{id}/disable")
-    public String disableUser(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+    @PostMapping("/admin/{id}/deactivate")
+    public String deactivateUser(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
             userService.disableUser(id);
-            redirectAttributes.addFlashAttribute("successMessage", "User disabled successfully!");
+            redirectAttributes.addFlashAttribute("successMessage", "User deactivated successfully!");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/users/admin/list";
     }
 
-    /**
-     * Delete user account (soft delete)
-     */
     @PostMapping("/admin/{id}/delete")
     public String deleteUser(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -350,142 +195,78 @@ public class UserController {
         return "redirect:/users/admin/list";
     }
 
-    // ==================== REST API ENDPOINTS ====================
-
-    /**
-     * REST API: Get user by ID
-     */
-    @GetMapping("/api/{id}")
+    @GetMapping("/api/users")
     @ResponseBody
-    public ResponseEntity<User> getUserById(@PathVariable("id") Long id) {
-        Optional<User> userOpt = userService.findById(id);
-        if (userOpt.isPresent()) {
-            return ResponseEntity.ok(userOpt.get());
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    public List<User> getAllUsersApi() {
+        return userService.findAllUsers();
     }
 
-    /**
-     * REST API: Check if username exists
-     */
-    @GetMapping("/api/check-username")
+    @GetMapping("/api/users/{id}")
     @ResponseBody
-    public ResponseEntity<Boolean> checkUsername(@RequestParam("username") String username) {
-        boolean exists = userService.usernameExists(username);
-        return ResponseEntity.ok(exists);
+    public User getUserByIdApi(@PathVariable("id") Long id) {
+        return userService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
-    /**
-     * REST API: Check if email exists
-     */
-    @GetMapping("/api/check-email")
+    @PostMapping("/api/users")
     @ResponseBody
-    public ResponseEntity<Boolean> checkEmail(@RequestParam("email") String email) {
-        boolean exists = userService.emailExists(email);
-        return ResponseEntity.ok(exists);
+    public User createUserApi(@RequestBody User user) {
+        return userService.registerUser(
+                user.getUsername(),
+                user.getEmail(),
+                user.getPassword(),
+                user.getFirstName(),
+                user.getLastName()
+        );
     }
 
-    /**
-     * REST API: Get all users
-     */
-    @GetMapping("/api/all")
+    @PutMapping("/api/users/{id}")
     @ResponseBody
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.findAllUsers();
-        return ResponseEntity.ok(users);
+    public User updateUserApi(@PathVariable("id") Long id, @RequestBody User user) {
+        User existingUser = userService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        existingUser.setUsername(user.getUsername());
+        existingUser.setEmail(user.getEmail());
+        existingUser.setFirstName(user.getFirstName());
+        existingUser.setLastName(user.getLastName());
+        return userService.updateUser(existingUser);
     }
 
-    /**
-     * REST API: User registration
-     */
-    @PostMapping("/api/register")
+    @DeleteMapping("/api/users/{id}")
     @ResponseBody
-    public ResponseEntity<String> registerUserAPI(@RequestBody User user) {
-        try {
-            userService.registerUser(
-                    user.getUsername(),
-                    user.getEmail(),
-                    user.getPassword(),
-                    user.getFirstName(),
-                    user.getLastName()
-            );
-            return ResponseEntity.ok("User registered successfully");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public String deleteUserApi(@PathVariable("id") Long id) {
+        userService.deleteUser(id);
+        return "User deleted successfully";
     }
 
-    // ==================== ADMIN PASSWORD RESET ====================
-
-    /**
-     * Show admin password reset form
-     */
-    @GetMapping("/admin/{id}/reset-password")
-    public String showResetPasswordForm(@PathVariable("id") Long id, Model model) {
-        Optional<User> userOpt = userService.findById(id);
-        if (userOpt.isPresent()) {
-            model.addAttribute("user", userOpt.get());
-            return "admin/users/reset-password";
-        } else {
-            model.addAttribute("errorMessage", "User not found");
-            return "error/404";
-        }
-    }
-
-    /**
-     * Process admin password reset
-     */
     @PostMapping("/admin/{id}/reset-password")
     public String resetUserPassword(@PathVariable("id") Long id,
                                     @RequestParam("newPassword") String newPassword,
                                     @RequestParam("confirmPassword") String confirmPassword,
-                                    Model model,
                                     RedirectAttributes redirectAttributes) {
 
-        // Validate password confirmation
         if (!newPassword.equals(confirmPassword)) {
-            model.addAttribute("errorMessage", "Passwords do not match");
-            Optional<User> userOpt = userService.findById(id);
-            if (userOpt.isPresent()) {
-                model.addAttribute("user", userOpt.get());
-            }
-            return "admin/users/reset-password";
+            redirectAttributes.addFlashAttribute("errorMessage", "Passwords do not match");
+            return "redirect:/users/admin/list";
         }
 
-        // Validate password strength
-        if (!userService.isValidPassword(newPassword)) {
-            model.addAttribute("errorMessage", "Password must be at least 8 characters long");
-            Optional<User> userOpt = userService.findById(id);
-            if (userOpt.isPresent()) {
-                model.addAttribute("user", userOpt.get());
-            }
-            return "admin/users/reset-password";
+        if (newPassword.length() < 8) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Password must be at least 8 characters long");
+            return "redirect:/users/admin/list";
         }
 
         try {
             userService.resetPassword(id, newPassword);
             redirectAttributes.addFlashAttribute("successMessage", "Password reset successfully!");
-            return "redirect:/users/admin/list";
-
         } catch (IllegalArgumentException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            Optional<User> userOpt = userService.findById(id);
-            if (userOpt.isPresent()) {
-                model.addAttribute("user", userOpt.get());
-            }
-            return "admin/users/reset-password";
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
+        return "redirect:/users/admin/list";
     }
 
-    // ==================== ERROR HANDLING ====================
-
-    /**
-     * Handle general exceptions
-     */
-    @ExceptionHandler(Exception.class)
-    public String handleException(Exception e, Model model) {
-        model.addAttribute("errorMessage", "An unexpected error occurred: " + e.getMessage());
-        return "error/general";
+    @ExceptionHandler(IllegalArgumentException.class)
+    public String handleIllegalArgumentException(IllegalArgumentException e, Model model) {
+        model.addAttribute("errorMessage", e.getMessage());
+        return "error/400";
     }
 }

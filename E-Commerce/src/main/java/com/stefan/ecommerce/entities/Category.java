@@ -35,11 +35,9 @@ public class Category {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Many-to-Many relationship with Product
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     private Set<Product> products = new HashSet<>();
 
-    // Constructors
     public Category() {}
 
     public Category(String name, String description) {
@@ -59,7 +57,6 @@ public class Category {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Lifecycle callbacks
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -71,7 +68,6 @@ public class Category {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -136,7 +132,6 @@ public class Category {
         this.products = products;
     }
 
-    // Helper methods for managing relationships
     public void addProduct(Product product) {
         this.products.add(product);
         product.getCategories().add(this);
@@ -147,26 +142,28 @@ public class Category {
         product.getCategories().remove(this);
     }
 
-    // Business logic methods
-    public boolean hasProducts() {
-        return products != null && !products.isEmpty();
+    public boolean isActive() {
+        return active != null && active;
     }
 
     public int getProductCount() {
-        return products != null ? products.size() : 0;
+        return products.size();
     }
 
-    public boolean isAvailable() {
-        return this.active && hasProducts();
+    public boolean hasProducts() {
+        return !products.isEmpty();
     }
 
-    // equals, hashCode, and toString
+    public boolean canBeDeleted() {
+        return products.isEmpty();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Category)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
         Category category = (Category) o;
-        return getId() != null && getId().equals(category.getId());
+        return id != null && id.equals(category.getId());
     }
 
     @Override
@@ -179,10 +176,7 @@ public class Category {
         return "Category{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
                 ", active=" + active +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
                 '}';
     }
 }

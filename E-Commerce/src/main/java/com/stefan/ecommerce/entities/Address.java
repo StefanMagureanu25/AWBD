@@ -1,12 +1,7 @@
 package com.stefan.ecommerce.entities;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,73 +12,87 @@ public class Address {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "address_line_1", nullable = false)
-    @NotBlank(message = "Address line 1 is required")
-    @Size(max = 255)
-    private String addressLine1;
+    @NotNull(message = "User is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "address_line_2")
-    @Size(max = 255)
-    private String addressLine2;
+    @NotBlank(message = "Street address is required")
+    @Size(max = 255, message = "Street address cannot exceed 255 characters")
+    @Column(name = "street_address", nullable = false)
+    private String streetAddress;
 
-    @Column(nullable = false)
     @NotBlank(message = "City is required")
-    @Size(max = 100)
+    @Size(max = 100, message = "City cannot exceed 100 characters")
+    @Column(name = "city", nullable = false)
     private String city;
 
-    @Column(nullable = false)
-    @NotBlank(message = "State is required")
-    @Size(max = 100)
-    private String state;
+    @NotBlank(message = "State/Province is required")
+    @Size(max = 100, message = "State/Province cannot exceed 100 characters")
+    @Column(name = "state_province", nullable = false)
+    private String stateProvince;
 
-    @Column(name = "postal_code", nullable = false)
     @NotBlank(message = "Postal code is required")
-    @Size(max = 20)
+    @Size(max = 20, message = "Postal code cannot exceed 20 characters")
+    @Column(name = "postal_code", nullable = false)
     private String postalCode;
 
-    @Column(nullable = false)
     @NotBlank(message = "Country is required")
-    @Size(max = 100)
+    @Size(max = 100, message = "Country cannot exceed 100 characters")
+    @Column(name = "country", nullable = false)
     private String country;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private AddressType type = AddressType.SHIPPING;
+    @Size(max = 100, message = "Address type cannot exceed 100 characters")
+    @Column(name = "address_type")
+    private String addressType;
 
     @Column(name = "is_default")
     private Boolean isDefault = false;
 
-    @Column(name = "recipient_name")
-    @Size(max = 100)
-    private String recipientName;
-
-    @Column(name = "phone_number")
-    @Size(max = 20)
-    private String phoneNumber;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // @ManyToOne relationship with User
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    @NotNull(message = "User is required")
-    private User user;
-
-    // Constructors
     public Address() {}
 
-    public Address(User user, AddressType type) {
+    public Address(User user, String streetAddress, String city, String stateProvince, String postalCode, String country) {
         this.user = user;
-        this.type = type;
+        this.streetAddress = streetAddress;
+        this.city = city;
+        this.stateProvince = stateProvince;
+        this.postalCode = postalCode;
+        this.country = country;
+        this.isDefault = false;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
+    public Address(User user, String streetAddress, String city, String stateProvince, String postalCode, String country, String addressType) {
+        this.user = user;
+        this.streetAddress = streetAddress;
+        this.city = city;
+        this.stateProvince = stateProvince;
+        this.postalCode = postalCode;
+        this.country = country;
+        this.addressType = addressType;
+        this.isDefault = false;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public Long getId() {
         return id;
     }
@@ -92,20 +101,20 @@ public class Address {
         this.id = id;
     }
 
-    public String getAddressLine1() {
-        return addressLine1;
+    public User getUser() {
+        return user;
     }
 
-    public void setAddressLine1(String addressLine1) {
-        this.addressLine1 = addressLine1;
+    public void setUser(User user) {
+        this.user = user;
     }
 
-    public String getAddressLine2() {
-        return addressLine2;
+    public String getStreetAddress() {
+        return streetAddress;
     }
 
-    public void setAddressLine2(String addressLine2) {
-        this.addressLine2 = addressLine2;
+    public void setStreetAddress(String streetAddress) {
+        this.streetAddress = streetAddress;
     }
 
     public String getCity() {
@@ -116,12 +125,12 @@ public class Address {
         this.city = city;
     }
 
-    public String getState() {
-        return state;
+    public String getStateProvince() {
+        return stateProvince;
     }
 
-    public void setState(String state) {
-        this.state = state;
+    public void setStateProvince(String stateProvince) {
+        this.stateProvince = stateProvince;
     }
 
     public String getPostalCode() {
@@ -140,12 +149,12 @@ public class Address {
         this.country = country;
     }
 
-    public AddressType getType() {
-        return type;
+    public String getAddressType() {
+        return addressType;
     }
 
-    public void setType(AddressType type) {
-        this.type = type;
+    public void setAddressType(String addressType) {
+        this.addressType = addressType;
     }
 
     public Boolean getIsDefault() {
@@ -156,75 +165,96 @@ public class Address {
         this.isDefault = isDefault;
     }
 
-    public String getRecipientName() {
-        return recipientName;
-    }
-
-    public void setRecipientName(String recipientName) {
-        this.recipientName = recipientName;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public User getUser() {
-        return user;
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    // Helper methods
     public String getFullAddress() {
-        StringBuilder fullAddress = new StringBuilder();
-        fullAddress.append(addressLine1);
-
-        if (addressLine2 != null && !addressLine2.trim().isEmpty()) {
-            fullAddress.append(", ").append(addressLine2);
-        }
-
-        fullAddress.append(", ").append(city)
-                .append(", ").append(state)
-                .append(" ").append(postalCode)
-                .append(", ").append(country);
-
-        return fullAddress.toString();
+        StringBuilder sb = new StringBuilder();
+        sb.append(streetAddress);
+        sb.append(", ").append(city);
+        sb.append(", ").append(stateProvince);
+        sb.append(" ").append(postalCode);
+        sb.append(", ").append(country);
+        return sb.toString();
     }
 
-    public String getShortAddress() {
-        return addressLine1 + ", " + city + ", " + state;
+    public String getFormattedAddress() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(streetAddress).append("\n");
+        sb.append(city).append(", ").append(stateProvince).append(" ").append(postalCode).append("\n");
+        sb.append(country);
+        return sb.toString();
+    }
+
+    public boolean isShippingAddress() {
+        return "SHIPPING".equalsIgnoreCase(addressType);
+    }
+
+    public boolean isBillingAddress() {
+        return "BILLING".equalsIgnoreCase(addressType);
+    }
+
+    public boolean isDefaultAddress() {
+        return isDefault != null && isDefault;
+    }
+
+    public boolean isValid() {
+        return streetAddress != null && !streetAddress.trim().isEmpty() &&
+               city != null && !city.trim().isEmpty() &&
+               stateProvince != null && !stateProvince.trim().isEmpty() &&
+               postalCode != null && !postalCode.trim().isEmpty() &&
+               country != null && !country.trim().isEmpty();
+    }
+
+    public String getAddressTypeDisplay() {
+        if (addressType == null) return "General";
+        switch (addressType.toUpperCase()) {
+            case "SHIPPING": return "Shipping Address";
+            case "BILLING": return "Billing Address";
+            case "HOME": return "Home Address";
+            case "WORK": return "Work Address";
+            default: return addressType;
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Address address = (Address) o;
+        return id != null && id.equals(address.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 
     @Override
     public String toString() {
         return "Address{" +
                 "id=" + id +
-                ", type=" + type +
+                ", userId=" + (user != null ? user.getId() : "null") +
+                ", streetAddress='" + streetAddress + '\'' +
                 ", city='" + city + '\'' +
-                ", state='" + state + '\'' +
+                ", stateProvince='" + stateProvince + '\'' +
+                ", postalCode='" + postalCode + '\'' +
                 ", country='" + country + '\'' +
+                ", addressType='" + addressType + '\'' +
                 ", isDefault=" + isDefault +
                 '}';
-    }
-
-    // Address Type enum
-    public enum AddressType {
-        SHIPPING,
-        BILLING,
-        BOTH
     }
 }

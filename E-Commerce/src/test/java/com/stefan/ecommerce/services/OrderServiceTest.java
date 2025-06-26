@@ -33,7 +33,7 @@ class OrderServiceTest {
         Order order1 = new Order();
         Order order2 = new Order();
         when(orderRepository.findAll()).thenReturn(Arrays.asList(order1, order2));
-        List<Order> orders = orderService.findAll();
+        List<Order> orders = orderService.getAllOrders();
         assertEquals(2, orders.size());
     }
 
@@ -42,7 +42,7 @@ class OrderServiceTest {
         Order order = new Order();
         order.setId(1L);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
-        Optional<Order> found = orderService.findById(1L);
+        Optional<Order> found = orderService.getOrderById(1L);
         assertTrue(found.isPresent());
         assertEquals(1L, found.get().getId());
     }
@@ -51,13 +51,13 @@ class OrderServiceTest {
     void testSave() {
         Order order = new Order();
         when(orderRepository.save(order)).thenReturn(order);
-        Order saved = orderService.save(order);
+        Order saved = orderService.saveOrder(order);
         assertNotNull(saved);
     }
 
     @Test
     void testDeleteById() {
-        orderService.deleteById(1L);
+        orderService.deleteOrder(1L);
         verify(orderRepository, times(1)).deleteById(1L);
     }
 } 

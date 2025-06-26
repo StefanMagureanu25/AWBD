@@ -1,8 +1,7 @@
 package com.stefan.ecommerce.entities;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,13 +15,16 @@ public class Role {
     private Long id;
 
     @NotBlank(message = "Role name is required")
-    @Size(min = 2, max = 50, message = "Role name must be between 2 and 50 characters")
+    @Size(max = 50, message = "Role name cannot exceed 50 characters")
     @Column(name = "name", nullable = false, unique = true, length = 50)
     private String name;
 
-    @Size(max = 255, message = "Description cannot exceed 255 characters")
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    @NotNull(message = "Active status is required")
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -30,27 +32,26 @@ public class Role {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Many-to-Many relationship with User
     @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
     private Set<User> users = new HashSet<>();
 
-    // Constructors
     public Role() {}
-
-    public Role(String name) {
-        this.name = name;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
 
     public Role(String name, String description) {
         this.name = name;
         this.description = description;
+        this.active = true;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Lifecycle callbacks
+    public Role(String name) {
+        this.name = name;
+        this.active = true;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -62,7 +63,6 @@ public class Role {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Basic Getters and Setters
     public Long getId() {
         return id;
     }
@@ -85,6 +85,14 @@ public class Role {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -111,124 +119,66 @@ public class Role {
         this.users = users;
     }
 
-    // ==================== RELATIONSHIP HELPER METHODS ====================
-
-    /**
-     * Add a user to this role
-     */
     public void addUser(User user) {
         this.users.add(user);
         user.getRoles().add(this);
     }
 
-    /**
-     * Remove a user from this role
-     */
     public void removeUser(User user) {
         this.users.remove(user);
         user.getRoles().remove(this);
     }
 
-    /**
-     * Check if this role contains a specific user
-     */
-    public boolean hasUser(User user) {
-        return users.contains(user);
+    public boolean isActive() {
+        return active != null && active;
     }
 
-    /**
-     * Get count of users with this role
-     */
-    public int getUserCount() {
-        return users != null ? users.size() : 0;
-    }
-
-    /**
-     * Check if role has any users
-     */
-    public boolean hasUsers() {
-        return users != null && !users.isEmpty();
-    }
-
-    // ==================== BUSINESS LOGIC METHODS ====================
-
-    /**
-     * Check if this is an admin role
-     */
     public boolean isAdminRole() {
-        return name != null && name.equalsIgnoreCase("ADMIN");
+        return "ADMIN".equals(name);
     }
 
-    /**
-     * Check if this is a user role
-     */
     public boolean isUserRole() {
-        return name != null && name.equalsIgnoreCase("USER");
+        return "USER".equals(name);
     }
 
-    /**
-     * Get display name (formatted role name)
-     */
-    public String getDisplayName() {
-        if (name == null) return "Unknown Role";
-
-        switch (name.toUpperCase()) {
-            case "ADMIN": return "Administrator";
-            case "USER": return "User";
-            default: return name;
-        }
+    public boolean isSystemRole() {
+        return "ADMIN".equals(name) || "USER".equals(name);
     }
 
-    /**
-     * Get role color for UI (can be used in frontend)
-     */
-    public String getRoleColor() {
-        if (name == null) return "gray";
-
-        switch (name.toUpperCase()) {
-            case "ADMIN": return "red";
-            case "USER": return "blue";
-            default: return "gray";
-        }
+    public boolean canBeDeleted() {
+        return !isSystemRole() && users.isEmpty();
     }
 
-    /**
-     * Get role icon for UI (can be used in frontend)
-     */
-    public String getRoleIcon() {
-        if (name == null) return "user";
-
-        switch (name.toUpperCase()) {
-            case "ADMIN": return "shield";
-            case "USER": return "user";
-            default: return "user";
-        }
+    public boolean canBeModified() {
+        return !isSystemRole();
     }
 
-    // ==================== STATIC FACTORY METHODS ====================
+    public int getUserCount() {
+        return users.size();
+    }
 
-    /**
-     * Create a new USER role
-     */
+    public boolean hasUsers() {
+        return !users.isEmpty();
+    }
+
     public static Role createUserRole() {
         return new Role("USER", "Regular user with basic permissions");
     }
 
-    /**
-     * Create a new ADMIN role
-     */
     public static Role createAdminRole() {
-        return new Role("ADMIN", "Administrator with full system access");
+        return new Role("ADMIN", "Administrator with full permissions");
     }
 
-    // ==================== EQUALS, HASHCODE, AND TOSTRING ====================
+    public static Role createCustomRole(String name, String description) {
+        return new Role(name, description);
+    }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Role)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
         Role role = (Role) o;
-        return getId() != null && getId().equals(role.getId());
+        return id != null && id.equals(role.getId());
     }
 
     @Override
@@ -241,9 +191,7 @@ public class Role {
         return "Role{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", userCount=" + getUserCount() +
-                ", createdAt=" + createdAt +
+                ", active=" + active +
                 '}';
     }
 }

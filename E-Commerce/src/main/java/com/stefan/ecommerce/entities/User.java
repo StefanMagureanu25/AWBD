@@ -21,8 +21,8 @@ public class User {
     private String username;
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Email should be valid")
-    @Column(name = "email", nullable = false, unique = true)
+    @Email(message = "Email format is invalid")
+    @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
     @NotBlank(message = "Password is required")
@@ -31,16 +31,22 @@ public class User {
     private String password;
 
     @NotBlank(message = "First name is required")
-    @Column(name = "first_name", nullable = false)
+    @Size(max = 50, message = "First name cannot exceed 50 characters")
+    @Column(name = "first_name", nullable = false, length = 50)
     private String firstName;
 
     @NotBlank(message = "Last name is required")
-    @Column(name = "last_name", nullable = false)
+    @Size(max = 50, message = "Last name cannot exceed 50 characters")
+    @Column(name = "last_name", nullable = false, length = 50)
     private String lastName;
 
     @NotNull(message = "Enabled status is required")
     @Column(name = "enabled", nullable = false)
     private Boolean enabled = true;
+
+    @NotNull(message = "Active status is required")
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -49,7 +55,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     // Many-to-Many relationship with Role
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -158,6 +164,14 @@ public class User {
 
     public boolean isEnabled() {
         return enabled != null && enabled;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -405,7 +419,7 @@ public class User {
      * Check if user account is active (enabled and has at least one role)
      */
     public boolean isActive() {
-        return isEnabled() && !roles.isEmpty();
+        return active != null && active;
     }
 
     /**

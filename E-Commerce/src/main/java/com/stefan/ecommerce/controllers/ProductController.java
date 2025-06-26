@@ -4,11 +4,16 @@ import com.stefan.ecommerce.entities.Product;
 import com.stefan.ecommerce.entities.Category;
 import com.stefan.ecommerce.services.ProductService;
 import com.stefan.ecommerce.services.CategoryService;
+import com.stefan.ecommerce.services.WishlistService;
+import com.stefan.ecommerce.services.UserService;
+import com.stefan.ecommerce.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -28,16 +33,18 @@ public class ProductController {
 
     private final ProductService productService;
     private final CategoryService categoryService;
+    private final WishlistService wishlistService;
+    private final UserService userService;
 
     @Autowired
-    public ProductController(ProductService productService, CategoryService categoryService) {
+    public ProductController(ProductService productService, CategoryService categoryService, 
+                           WishlistService wishlistService, UserService userService) {
         this.productService = productService;
         this.categoryService = categoryService;
+        this.wishlistService = wishlistService;
+        this.userService = userService;
     }
 
-    /**
-     * Show product catalog with pagination
-     */
     @GetMapping
     public String showProductCatalog(@RequestParam(defaultValue = "0") int page,
                                      @RequestParam(defaultValue = "12") int size,
@@ -59,27 +66,48 @@ public class ProductController {
         model.addAttribute("sortBy", sortBy);
         model.addAttribute("sortDir", sortDir);
 
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && 
+            !authentication.getName().equals("anonymousUser")) {
+            model.addAttribute("wishlistService", wishlistService);
+            
+            Optional<User> userOpt = userService.findByUsername(authentication.getName());
+            if (userOpt.isPresent()) {
+                User currentUser = userOpt.get();
+                model.addAttribute("currentUser", currentUser);
+                model.addAttribute("currentUserId", currentUser.getId());
+            }
+        }
+
         return "products/catalog";
     }
 
-    /**
-     * Show product by ID
-     */
     @GetMapping("/{id}")
     public String showProduct(@PathVariable("id") Long id, Model model) {
         Optional<Product> productOpt = productService.findByIdWithCategories(id);
 
         if (productOpt.isPresent()) {
             model.addAttribute("product", productOpt.get());
+            
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated() && 
+                !authentication.getName().equals("anonymousUser")) {
+                model.addAttribute("wishlistService", wishlistService);
+                
+                Optional<User> userOpt = userService.findByUsername(authentication.getName());
+                if (userOpt.isPresent()) {
+                    User currentUser = userOpt.get();
+                    model.addAttribute("currentUser", currentUser);
+                    model.addAttribute("currentUserId", currentUser.getId());
+                }
+            }
+            
             return "products/details";
         } else {
             return "error/404";
         }
     }
 
-    /**
-     * Show products by category
-     */
     @GetMapping("/category/{categoryId}")
     public String showProductsByCategory(@PathVariable("categoryId") Long categoryId,
                                          @RequestParam(defaultValue = "0") int page,
@@ -95,6 +123,21 @@ public class ProductController {
             model.addAttribute("category", categoryOpt.get());
             model.addAttribute("productsPage", productsPage);
             model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", productsPage.getTotalPages());
+            model.addAttribute("totalProducts", productsPage.getTotalElements());
+
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated() && 
+                !authentication.getName().equals("anonymousUser")) {
+                model.addAttribute("wishlistService", wishlistService);
+                
+                Optional<User> userOpt = userService.findByUsername(authentication.getName());
+                if (userOpt.isPresent()) {
+                    User currentUser = userOpt.get();
+                    model.addAttribute("currentUser", currentUser);
+                    model.addAttribute("currentUserId", currentUser.getId());
+                }
+            }
 
             return "products/category";
         } else {
@@ -102,9 +145,6 @@ public class ProductController {
         }
     }
 
-    /**
-     * Search products
-     */
     @GetMapping("/search")
     public String searchProducts(@RequestParam("q") String searchTerm,
                                  @RequestParam(defaultValue = "0") int page,
@@ -122,11 +162,6 @@ public class ProductController {
         return "products/search-results";
     }
 
-    // ==================== ADMIN PRODUCT MANAGEMENT ====================
-
-    /**
-     * Show product creation form
-     */
     @GetMapping("/admin/create")
     public String showCreateProductForm(Model model) {
         model.addAttribute("product", new Product());
@@ -134,9 +169,6 @@ public class ProductController {
         return "admin/products/create";
     }
 
-    /**
-     * Process product creation
-     */
     @PostMapping("/admin/create")
     public String createProduct(@Valid @ModelAttribute("product") Product product,
                                 BindingResult bindingResult,
@@ -150,7 +182,6 @@ public class ProductController {
         }
 
         try {
-            // Prepare categories set
             Set<Category> categories = new HashSet<>();
             if (categoryIds != null && !categoryIds.isEmpty()) {
                 for (Long categoryId : categoryIds) {
@@ -159,7 +190,6 @@ public class ProductController {
                 }
             }
 
-            // Create the product with correct parameter order
             Product createdProduct = productService.createProduct(
                     product.getName(),
                     product.getDescription(),
@@ -171,7 +201,6 @@ public class ProductController {
                     categories
             );
 
-            // Set active status if needed
             if (!product.getActive()) {
                 productService.deactivateProduct(createdProduct.getId());
             }
@@ -187,20 +216,14 @@ public class ProductController {
         }
     }
 
-    /**
-     * Show all products for admin management
-     */
     @GetMapping("/admin/list")
     public String showAdminProductList(@RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "20") int size,
                                        Model model) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        // Use findAllProducts method that returns all products including inactive ones
         List<Product> allProducts = productService.findAllProducts();
 
-        // For pagination, we can create a simple Page implementation or modify the service
-        // For now, let's use findAllActiveProducts and note this needs proper implementation
         Page<Product> productsPage = productService.findAllActiveProducts(pageable);
 
         model.addAttribute("productsPage", productsPage);
@@ -209,9 +232,6 @@ public class ProductController {
         return "admin/products/list";
     }
 
-    /**
-     * Show edit product form
-     */
     @GetMapping("/admin/{id}/edit")
     public String showEditProductForm(@PathVariable("id") Long id, Model model) {
         Optional<Product> productOpt = productService.findByIdWithCategories(id);
@@ -225,9 +245,6 @@ public class ProductController {
         }
     }
 
-    /**
-     * Process product update
-     */
     @PostMapping("/admin/{id}/edit")
     public String updateProduct(@PathVariable("id") Long id,
                                 @Valid @ModelAttribute("product") Product product,
@@ -242,7 +259,6 @@ public class ProductController {
         }
 
         try {
-            // Prepare categories set
             Set<Category> categories = new HashSet<>();
             if (categoryIds != null && !categoryIds.isEmpty()) {
                 for (Long categoryId : categoryIds) {
@@ -251,7 +267,6 @@ public class ProductController {
                 }
             }
 
-            // Update the product with correct parameter order
             Product updatedProduct = productService.updateProduct(
                     id,
                     product.getName(),
@@ -264,7 +279,6 @@ public class ProductController {
                     categories
             );
 
-            // Handle active status
             if (product.getActive()) {
                 productService.activateProduct(id);
             } else {
@@ -282,9 +296,6 @@ public class ProductController {
         }
     }
 
-    /**
-     * Delete product
-     */
     @PostMapping("/admin/{id}/delete")
     public String deleteProduct(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -293,13 +304,9 @@ public class ProductController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error deleting product: " + e.getMessage());
         }
-
         return "redirect:/products/admin/list";
     }
 
-    /**
-     * Activate product
-     */
     @PostMapping("/admin/{id}/activate")
     public String activateProduct(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -308,13 +315,9 @@ public class ProductController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error activating product: " + e.getMessage());
         }
-
         return "redirect:/products/admin/list";
     }
 
-    /**
-     * Deactivate product
-     */
     @PostMapping("/admin/{id}/deactivate")
     public String deactivateProduct(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -323,42 +326,30 @@ public class ProductController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Error deactivating product: " + e.getMessage());
         }
-
         return "redirect:/products/admin/list";
     }
 
-    // ==================== QUICK ACCESS ROUTES ====================
-
-    /**
-     * Featured products
-     */
     @GetMapping("/featured")
     public String showFeaturedProducts(Model model) {
         List<Product> featuredProducts = productService.getFeaturedProducts(20);
         model.addAttribute("products", featuredProducts);
-        model.addAttribute("pageTitle", "Featured Products");
-        return "products/featured";
+        model.addAttribute("title", "Featured Products");
+        return "products/catalog";
     }
 
-    /**
-     * Best deals (cheapest products)
-     */
     @GetMapping("/cheapest")
     public String showBestDeals(Model model) {
-        List<Product> cheapProducts = productService.getProductsSortedByPriceAsc(20);
-        model.addAttribute("products", cheapProducts);
-        model.addAttribute("pageTitle", "Best Deals");
-        return "products/deals";
+        List<Product> cheapestProducts = productService.getProductsSortedByPriceAsc(20);
+        model.addAttribute("products", cheapestProducts);
+        model.addAttribute("title", "Best Deals");
+        return "products/catalog";
     }
 
-    /**
-     * Premium products (most expensive)
-     */
     @GetMapping("/premium")
     public String showPremiumProducts(Model model) {
-        List<Product> expensiveProducts = productService.getProductsSortedByPriceDesc(20);
-        model.addAttribute("products", expensiveProducts);
-        model.addAttribute("pageTitle", "Premium Collection");
-        return "products/premium";
+        List<Product> premiumProducts = productService.getProductsSortedByPriceDesc(20);
+        model.addAttribute("products", premiumProducts);
+        model.addAttribute("title", "Premium Products");
+        return "products/catalog";
     }
 }
